@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from config.db import connection
 from models.user import users
+from schemas.user import User
 
 router = APIRouter(prefix='/api/user', tags=['User'])
 
@@ -16,7 +17,10 @@ async def get_user(id: str):
 
 
 @router.post('/')
-async def create_user():
+async def create_user(user_details: User):
+    # new_user = connection.execute(users.select()).fetchone()
+    new_user = user_details.model_dump()
+    print(new)
     return 'Buenas desde router'
 
 

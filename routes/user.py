@@ -20,7 +20,7 @@ async def get_user(id: str):
 async def create_user(user_details: User):
     # new_user = connection.execute(users.select()).fetchone()
     new_user = user_details.model_dump()
-    print(new)
+    print(new_user)
     return 'Buenas desde router'
 
 

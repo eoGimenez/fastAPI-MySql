@@ -6,7 +6,6 @@ load_dotenv()
 
 user_sql = os.environ.get("USER_SQL")
 password_sql = os.environ.get("PASSWORD_SQL")
-print(password_sql, user_sql)
 
 
 engine = create_engine(

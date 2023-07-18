@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from fastapi import APIRouter, Security, HTTPException
+from fastapi import APIRouter, Depends, Security, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from passlib.context import CryptContext
@@ -82,3 +82,7 @@ async def login_user(user_details: User):
             401, 'Credenciales incorrectas, ¿ has olvidado tu contraseña ?')
     token = auth_handler.encode_token(user['email'])
     return {"token": token}
+
+@router.get('/veirfy', status_code=201)
+async def verify_token(email=Depends(auth_handler.auth_wrapper)):
+    #ARMAR FUNCION DE DECODIFICACION DE TOKEN DESDE LA DB

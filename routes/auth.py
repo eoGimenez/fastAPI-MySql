@@ -1,11 +1,14 @@
 import os
 from datetime import datetime, timedelta
+import random
+import string
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, Security, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from passlib.context import CryptContext
-from config.db import connection
+from sqlalchemy.orm import Session
+from config.db import get_db
 from models.user import users
 from schemas.user import User
 
@@ -51,30 +54,36 @@ class AuthHandler():
     def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):
         return self.decode_token(auth.credentials)
 
+    def id_generator(self):
+        chars = string.ascii_letters
+        digits = string.digits
+        id = "".join(random.choices(f'{chars}{digits}', k=28))
+        return id
+
 
 auth_handler = AuthHandler()
 
 
 @router.post('/signup', status_code=201)
-async def create_user(user_details: User):
-
-    if connection.execute(users.select().where(users.c.email == user_details.email)).first():
+async def create_user(user_details: User, db: Session = Depends(get_db)):
+    if db.execute(users.select().where(users.c.email == user_details.email)).first():
         raise HTTPException(
             400, 'Ya existe ese usuario. ¿ Has olvidado tu contraseña ?')
     hashed_pass = auth_handler.get_password_hash(user_details.password)
-    new_user = {"name": user_details.name,
+    new_id = auth_handler.id_generator()
+    new_user = {"id": new_id, "name": user_details.name,
                 "email": user_details.email, "password": hashed_pass}
-    result = connection.execute(users.insert().values(new_user))
-    found_user = connection.execute(
-        users.select().where(users.c.id == result.lastrowid)).first()
+    result = db.execute(users.insert().values(new_user))
+    found_user = db.execute(
+        users.select().where(users.c.id == new_id)).first()
     created_user = (dict(zip(users.columns.keys(), found_user)))
-    connection.commit()
+    db.commit()
     return created_user
 
 
 @router.post('/login', status_code=200)
-async def login_user(user_details: User):
-    result = connection.execute(
+async def login_user(user_details: User, db: Session = Depends(get_db)):
+    result = db.execute(
         users.select().where(users.c.email == user_details.email)).first()
     user = dict(zip(users.columns.keys(), result))
     if (not user or (not auth_handler.verify_password(user_details.password, user['password']))):
@@ -83,6 +92,10 @@ async def login_user(user_details: User):
     token = auth_handler.encode_token(user['email'])
     return {"token": token}
 
-@router.get('/veirfy', status_code=201)
-async def verify_token(email=Depends(auth_handler.auth_wrapper)):
-    #ARMAR FUNCION DE DECODIFICACION DE TOKEN DESDE LA DB
+
+@router.get('/verify', status_code=201)
+async def verify_token(email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
+    result: User = db.execute(
+        users.select().where(users.c.email == email)).first()
+    user_token = dict(zip(users.columns.keys(), result))
+    return user_token

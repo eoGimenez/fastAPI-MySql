@@ -1,15 +1,16 @@
-from fastapi import APIRouter
-from config.db import connection
+from fastapi import APIRouter, Depends
+from config.db import get_db
 from models.user import users
-from schemas.user import User
+from sqlalchemy.orm import Session
+# from schemas.user import User
 
 router = APIRouter(prefix='/api/user', tags=['User'])
 
 
 @router.get('/')
-async def get_users():
+async def get_users(db: Session = Depends(get_db)):
     all_users = []
-    response = connection.execute(users.select()).fetchall()
+    response = db.execute(users.select()).fetchall()
     for doc in response:
         user = (dict(zip(users.columns.keys(), doc)))
         all_users.append(user)
@@ -17,8 +18,8 @@ async def get_users():
 
 
 @router.get('/{id}')
-async def get_user(id: str):
-    result = connection.execute(
+async def get_user(id: str, db: Session = Depends(get_db)):
+    result = db.execute(
         users.select().where(users.c.id == id)).first()
     return dict(zip(users.columns.keys(), result))
 

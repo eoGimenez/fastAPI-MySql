@@ -62,7 +62,23 @@ async def create_user(user_details: User):
         raise HTTPException(
             400, 'Ya existe ese usuario. ¿ Has olvidado tu contraseña ?')
     hashed_pass = auth_handler.get_password_hash(user_details.password)
-    new_user = user_details.model_dump()
-    new_user['password'] = hashed_pass
-    print(new_user)
-    return 'testeando'
+    new_user = {"name": user_details.name,
+                "email": user_details.email, "password": hashed_pass}
+    result = connection.execute(users.insert().values(new_user))
+    found_user = connection.execute(
+        users.select().where(users.c.id == result.lastrowid)).first()
+    created_user = (dict(zip(users.columns.keys(), found_user)))
+    connection.commit()
+    return created_user
+
+
+@router.post('/login', status_code=200)
+async def login_user(user_details: User):
+    result = connection.execute(
+        users.select().where(users.c.email == user_details.email)).first()
+    user = dict(zip(users.columns.keys(), result))
+    if (not user or (not auth_handler.verify_password(user_details.password, user['password']))):
+        raise HTTPException(
+            401, 'Credenciales incorrectas, ¿ has olvidado tu contraseña ?')
+    token = auth_handler.encode_token(user['email'])
+    return {"token": token}

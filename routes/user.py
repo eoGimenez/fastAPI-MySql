@@ -8,20 +8,19 @@ router = APIRouter(prefix='/api/user', tags=['User'])
 
 @router.get('/')
 async def get_users():
-    return connection.execute(users.select()).fetchall()
+    all_users = []
+    response = connection.execute(users.select()).fetchall()
+    for doc in response:
+        user = (dict(zip(users.columns.keys(), doc)))
+        all_users.append(user)
+    return all_users
 
 
 @router.get('/{id}')
 async def get_user(id: str):
-    return 'Buenas desde router'
-
-
-@router.post('/')
-async def create_user(user_details: User):
-    # new_user = connection.execute(users.select()).fetchone()
-    new_user = user_details.model_dump()
-    print(new_user)
-    return 'Buenas desde router'
+    result = connection.execute(
+        users.select().where(users.c.id == id)).first()
+    return dict(zip(users.columns.keys(), result))
 
 
 @router.put('/{id}')

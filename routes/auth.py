@@ -99,3 +99,5 @@ async def verify_token(email=Depends(auth_handler.auth_wrapper), db: Session = D
         users.select().where(users.c.email == email)).first()
     user_token = dict(zip(users.columns.keys(), result))
     return user_token
+
+

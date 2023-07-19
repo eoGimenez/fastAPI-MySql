@@ -44,12 +44,12 @@ class AuthHandler():
         try:
             payload = jwt.decode(token, self.secret, algorithms=['HS256'])
             return payload['sub']
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as exc:
             raise HTTPException(
-                status_code=4001, detail='Ah expirado el tiempo de la firma, por favopr vuelva a conectarse')
+                status_code=4001, detail='Ah expirado el tiempo de la firma, por favopr vuelva a conectarse') from exc
         except jwt.InvalidTokenError as e:
             raise HTTPException(
-                status_code=401, detail='Credenciales incorrectas, compruebe sus datos')
+                status_code=401, detail='Credenciales incorrectas, compruebe sus datos') from e
 
     def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):
         return self.decode_token(auth.credentials)
@@ -97,7 +97,8 @@ async def login_user(user_details: User, db: Session = Depends(get_db)):
 async def verify_token(email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     result: User = db.execute(
         users.select().where(users.c.email == email)).first()
+    if (not result):
+        raise HTTPException(
+            401, 'Se produjo un error con tu autenticación, por favor, vuelva a conectarse')
     user_token = dict(zip(users.columns.keys(), result))
     return user_token
-
-

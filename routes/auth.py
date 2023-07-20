@@ -64,7 +64,7 @@ class AuthHandler():
 auth_handler = AuthHandler()
 
 
-@router.post('/signup', status_code=201)
+@router.post('/signup', status_code=201, response_model=User)
 async def create_user(user_details: User, db: Session = Depends(get_db)):
     if db.execute(users.select().where(users.c.email == user_details.email)).first():
         raise HTTPException(
@@ -93,7 +93,7 @@ async def login_user(user_details: User, db: Session = Depends(get_db)):
     return {"token": token}
 
 
-@router.get('/verify', status_code=201)
+@router.get('/verify', status_code=201, response_model=User)
 async def verify_token(email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     result: User = db.execute(
         users.select().where(users.c.email == email)).first()

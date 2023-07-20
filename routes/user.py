@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from starlette.status import HTTP_204_NO_CONTENT
 from config.db import get_db
 from models.user import users
 from sqlalchemy.orm import Session
@@ -10,7 +11,7 @@ router = APIRouter(prefix='/api/user', tags=['User'])
 auth_handler = AuthHandler()
 
 
-@router.get('/')
+@router.get('/', response_model=User)
 async def get_users(db: Session = Depends(get_db)):
     all_users = []
     response = db.execute(users.select()).fetchall()
@@ -20,7 +21,7 @@ async def get_users(db: Session = Depends(get_db)):
     return all_users
 
 
-@router.get('/{id}')
+@router.get('/{id}', response_model=User)
 async def get_user(id: str, db: Session = Depends(get_db)):
     result = db.execute(
         users.select().where(users.c.id == id)).first()
@@ -30,7 +31,7 @@ async def get_user(id: str, db: Session = Depends(get_db)):
     return dict(zip(users.columns.keys(), result))
 
 
-@router.put('/{id}')
+@router.put('/{id}', response_model=User)
 async def update_user(id: str, user_details: User, email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     found_user: User = db.execute(
         users.select().where(users.c.id == id)).first()
@@ -48,7 +49,7 @@ async def update_user(id: str, user_details: User, email=Depends(auth_handler.au
     return created_user
 
 
-@router.delete('/{id}')
+@router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(id: str, email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     found_user: User = db.execute(
         users.select().where(users.c.id == id)).first()
@@ -60,4 +61,4 @@ async def delete_user(id: str, email=Depends(auth_handler.auth_wrapper), db: Ses
             401, 'No puedes eliminar o modificar otros usuarios sin permisos de ADMIN')
     db.execute(users.delete().where(users.c.id == id))
     db.commit()
-    return 'El usuario fue eliminado de la base de datos'
+    return Response(status_code=HTTP_204_NO_CONTENT)

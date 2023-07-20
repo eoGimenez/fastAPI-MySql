@@ -11,7 +11,7 @@ router = APIRouter(prefix='/api/user', tags=['User'])
 auth_handler = AuthHandler()
 
 
-@router.get('/', response_model=User)
+@router.get('/', response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
     all_users = []
     response = db.execute(users.select()).fetchall()

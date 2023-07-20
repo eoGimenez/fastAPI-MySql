@@ -32,31 +32,33 @@ async def get_user(id: str, db: Session = Depends(get_db)):
 
 
 @router.put('/{id}', response_model=User)
-async def update_user(id: str, user_details: User, email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
+async def update_user(id: str, user_details: User, id_token=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     found_user: User = db.execute(
         users.select().where(users.c.id == id)).first()
     if (not found_user):
         raise HTTPException(
             404, f"El usuario con el id: '{id}', no existe en la base de datos")
-    if (found_user.email != email):
+    if (found_user.id != id_token):
         raise HTTPException(
             401, 'No puedes eliminar o modificar otros usuarios sin permisos de ADMIN')
     db.execute(
         users.update().values({"name": user_details.name,
                                "email": user_details.email}).where(users.c.id == id))
-    created_user = (dict(zip(users.columns.keys(), found_user)))
     db.commit()
+    updated_user: User = db.execute(
+        users.select().where(users.c.id == id)).first()
+    created_user = (dict(zip(users.columns.keys(), updated_user)))
     return created_user
 
 
 @router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(id: str, email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
+async def delete_user(id: str, id_token=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     found_user: User = db.execute(
         users.select().where(users.c.id == id)).first()
     if (not found_user):
         raise HTTPException(
             404, f"El usuario con el id: '{id}', no existe en la base de datos")
-    if (found_user.email != email):
+    if (found_user.id != id_token):
         raise HTTPException(
             401, 'No puedes eliminar o modificar otros usuarios sin permisos de ADMIN')
     db.execute(users.delete().where(users.c.id == id))

@@ -89,14 +89,14 @@ async def login_user(user_details: User, db: Session = Depends(get_db)):
     if (not user or (not auth_handler.verify_password(user_details.password, user['password']))):
         raise HTTPException(
             401, 'Credenciales incorrectas, ¿ has olvidado tu contraseña ?')
-    token = auth_handler.encode_token(user['email'])
+    token = auth_handler.encode_token(user['id'])
     return {"token": token}
 
 
 @router.get('/verify', status_code=201, response_model=User)
-async def verify_token(email=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
+async def verify_token(id_token=Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     result: User = db.execute(
-        users.select().where(users.c.email == email)).first()
+        users.select().where(users.c.id == id_token)).first()
     if (not result):
         raise HTTPException(
             401, 'Se produjo un error con tu autenticación, por favor, vuelva a conectarse')

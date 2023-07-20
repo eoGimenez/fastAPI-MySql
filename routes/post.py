@@ -43,3 +43,11 @@ async def create_post(post_details: Post, db: Session = Depends(get_db), id_toke
         posts.select().where(posts.c.id == new_id)).first()
     created_post = (dict(zip(posts.columns.keys(), found_post)))
     return created_post
+
+@router.put('/{id}', response_model=Post)
+async def update_post(id: str, post_details : Post, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
+    return "edit"
+
+@router.delete('/{id}')
+async def delete_post(id: str, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
+    return "delete"

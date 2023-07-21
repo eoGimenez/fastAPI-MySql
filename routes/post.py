@@ -24,9 +24,11 @@ auth_handler = AuthHandler()
 
 
 @router.get('/')
-async def get_posts(db: Session = Depends(get_db)):
+async def get_posts(page,  post_num: int, db: Session = Depends(get_db)):
     all_posts = []
-    response = db.execute(posts.select()).fetchall()
+    # response = db.execute(posts.select()).fetchall()
+    response = db.execute(posts.select()).fetchmany(size=post_num)
+    print(response)
     for doc in response:
         post = dict(zip(posts.columns.keys(), doc))
         all_posts.append(post)

@@ -44,9 +44,28 @@ async def create_post(post_details: Post, db: Session = Depends(get_db), id_toke
     created_post = (dict(zip(posts.columns.keys(), found_post)))
     return created_post
 
+
+@router.get('/{id}', response_model=Post)
+async def get_post(id: str, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
+    found_post: Post = db.execute(
+        posts.select().where(posts.c.id == id)).first()
+    post = dict(zip(posts.columns.keys(), found_post))
+    return post
+
+
 @router.put('/{id}', response_model=Post)
-async def update_post(id: str, post_details : Post, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
-    return "edit"
+async def update_post(id: str, post_details: Post, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
+    found_post: Post = dict(zip(posts.columns.keys(), db.execute(
+        posts.select().where(posts.c.id == id)).first()))
+    if (found_post["author"] == id_token):
+        db.execute(posts.update().values(
+            {"place": post_details.place, "comment": post_details.comment, "image": post_details.image}))
+        db.commit()
+        updated_post: Post = dict(zip(posts.columns.keys(), db.execute(
+            posts.select().where(posts.c.id == id)).first()))
+        return updated_post
+    return "No tienes permisos para realizar esa acción."
+
 
 @router.delete('/{id}')
 async def delete_post(id: str, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):

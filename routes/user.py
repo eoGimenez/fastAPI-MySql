@@ -45,10 +45,9 @@ async def update_user(id: str, user_details: User, id_token=Depends(auth_handler
         users.update().values({"name": user_details.name,
                                "email": user_details.email}).where(users.c.id == id))
     db.commit()
-    updated_user: User = db.execute(
-        users.select().where(users.c.id == id)).first()
-    created_user = (dict(zip(users.columns.keys(), updated_user)))
-    return created_user
+    updated_user: User = dict(zip(users.columns.keys(), db.execute(
+        users.select().where(users.c.id == id)).first()))
+    return updated_user
 
 
 @router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)

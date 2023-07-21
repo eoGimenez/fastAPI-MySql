@@ -57,7 +57,7 @@ async def delete_user(id: str, id_token=Depends(auth_handler.auth_wrapper), db: 
     if (not found_user):
         raise HTTPException(
             404, f"El usuario con el id: '{id}', no existe en la base de datos")
-    if (found_user.id != id_token):
+    if (found_user.id != id_token): # aquí hay que agregar condicional para que si sos admin pase por encima de esta condición.
         raise HTTPException(
             401, 'No puedes eliminar o modificar otros usuarios sin permisos de ADMIN')
     db.execute(users.delete().where(users.c.id == id))

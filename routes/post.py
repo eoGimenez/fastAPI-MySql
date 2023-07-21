@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
 import random
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from starlette.status import HTTP_204_NO_CONTENT
 import string
-from config.db import get_db
-from models.post import posts
 from models.user import users
 from sqlalchemy.orm import Session
+from config.db import get_db
 from .auth import AuthHandler
+from models.post import posts
 from schemas.post import Post
 
 
@@ -49,6 +50,9 @@ async def create_post(post_details: Post, db: Session = Depends(get_db), id_toke
 async def get_post(id: str, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
     found_post: Post = db.execute(
         posts.select().where(posts.c.id == id)).first()
+    if (not found_post):
+        raise HTTPException(
+            404, 'Surgio un problema y no pudimos encontrar ese post, intentelo nuevamente')
     post = dict(zip(posts.columns.keys(), found_post))
     return post
 
@@ -59,7 +63,7 @@ async def update_post(id: str, post_details: Post, db: Session = Depends(get_db)
         posts.select().where(posts.c.id == id)).first()))
     if (found_post["author"] == id_token):
         db.execute(posts.update().values(
-            {"place": post_details.place, "comment": post_details.comment, "image": post_details.image}))
+            {"place": post_details.place, "comment": post_details.comment, "image": post_details.image}).where(posts.c.id == id))
         db.commit()
         updated_post: Post = dict(zip(posts.columns.keys(), db.execute(
             posts.select().where(posts.c.id == id)).first()))
@@ -69,4 +73,14 @@ async def update_post(id: str, post_details: Post, db: Session = Depends(get_db)
 
 @router.delete('/{id}')
 async def delete_post(id: str, db: Session = Depends(get_db), id_token=Depends(auth_handler.auth_wrapper)):
-    return "delete"
+    found_post: Post = db.execute(
+        posts.select().where(posts.c.id == id)). first()
+    if (not found_post):
+        raise HTTPException(
+            404, "Fue imposible encontrar el post a eliminar, por favor espere un momento y vuelva a intentarlo")
+    if (found_post.author != id_token):  # agregar checkeo de admin.
+        raise HTTPException(
+            401, 'No puede eliminar o modificar posts de otros usuarios sin permisos de ADMIN')
+    db.execute(posts.delete().where(posts.c.id == id))
+    db.commit()
+    return
